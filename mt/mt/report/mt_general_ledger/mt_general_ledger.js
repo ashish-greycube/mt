@@ -1,6 +1,5 @@
-// Copyright (c) 2016, GreyCube Technologies and contributors
-// For license information, please see license.txt
-/* eslint-disable */
+// Copyright (c) 2018, Frappe Technologies Pvt. Ltd. and Contributors
+// License: GNU General Public License v3. See license.txt
 
 frappe.query_reports["MT General Ledger"] = {
 	"filters": [
@@ -40,7 +39,7 @@ frappe.query_reports["MT General Ledger"] = {
 			"fieldname":"account",
 			"label": __("Account"),
 			"fieldtype": "Select",
-			"reqd": 1	
+			"reqd": 1
 		},
 		{
 			"fieldname":"voucher_no",
@@ -49,69 +48,6 @@ frappe.query_reports["MT General Ledger"] = {
 			"hidden":1,
 			on_change: function() {
 				frappe.query_report.set_filter_value('group_by', "");
-			}
-		},
-		{
-			"fieldname":"cost_center",
-			"label": __("Cost Center"),
-			"fieldtype": "MultiSelect",
-			"hidden":1,
-			get_data: function() {
-				var cost_centers = frappe.query_report.get_filter_value("cost_center") || "";
-
-				const values = cost_centers.split(/\s*,\s*/).filter(d => d);
-				const txt = cost_centers.match(/[^,\s*]*$/)[0] || '';
-				let data = [];
-
-				frappe.call({
-					type: "GET",
-					method:'frappe.desk.search.search_link',
-					async: false,
-					no_spinner: true,
-					args: {
-						doctype: "Cost Center",
-						txt: txt,
-						filters: {
-							"company": frappe.query_report.get_filter_value("company"),
-							"name": ["not in", values]
-						}
-					},
-					callback: function(r) {
-						data = r.results;
-					}
-				});
-				return data;
-			}
-		},
-		{
-			"fieldname":"project",
-			"label": __("Project"),
-			"hidden":1,
-			"fieldtype": "MultiSelect",
-			get_data: function() {
-				var projects = frappe.query_report.get_filter_value("project") || "";
-
-				const values = projects.split(/\s*,\s*/).filter(d => d);
-				const txt = projects.match(/[^,\s*]*$/)[0] || '';
-				let data = [];
-
-				frappe.call({
-					type: "GET",
-					method:'frappe.desk.search.search_link',
-					async: false,
-					no_spinner: true,
-					args: {
-						doctype: "Project",
-						txt: txt,
-						filters: {
-							"name": ["not in", values]
-						}
-					},
-					callback: function(r) {
-						data = r.results;
-					}
-				});
-				return data;
 			}
 		},
 		{
@@ -131,47 +67,26 @@ frappe.query_reports["MT General Ledger"] = {
 		{
 			"fieldname":"party",
 			"label": __("Party"),
-			"fieldtype": "MultiSelect",
+			"fieldtype": "MultiSelectList",
 			"hidden":1,
-			get_data: function() {
+			get_data: function(txt) {
 				if (!frappe.query_report.filters) return;
-				var party_type = frappe.query_report.get_filter_value('party_type');
-				var parties = frappe.query_report.get_filter_value('party');
-				if(!party_type) return;
 
-				const values = parties.split(/\s*,\s*/).filter(d => d);
-				const txt = parties.match(/[^,\s*]*$/)[0] || '';
-				let data = [];
+				let party_type = frappe.query_report.get_filter_value('party_type');
+				if (!party_type) return;
 
-				frappe.call({
-					type: "GET",
-					method:'frappe.desk.search.search_link',
-					async: false,
-					no_spinner: true,
-					args: {
-						doctype: frappe.query_report.get_filter_value('party_type'),
-						txt: txt,
-						filters: {
-							"name": ["not in", values]
-						}
-					},
-					callback: function(r) {
-						data = r.results;
-					}
-				});
-				return data;
+				return frappe.db.get_link_options(party_type, txt);
 			},
 			on_change: function() {
 				var party_type = frappe.query_report.get_filter_value('party_type');
 				var parties = frappe.query_report.get_filter_value('party');
-				const values = parties.split(/\s*,\s*/).filter(d => d);
 
-				if(!party_type || !parties || values.length>1) {
+				if(!party_type || parties.length === 0 || parties.length > 1) {
 					frappe.query_report.set_filter_value('party_name', "");
 					frappe.query_report.set_filter_value('tax_id', "");
 					return;
 				} else {
-					var party = values[0];
+					var party = parties[0];
 					var fieldname = erpnext.utils.get_party_name(party_type) || "name";
 					frappe.db.get_value(party_type, party, fieldname, function(value) {
 						frappe.query_report.set_filter_value('party_name', value[fieldname]);
@@ -214,16 +129,35 @@ frappe.query_reports["MT General Ledger"] = {
 			"options": erpnext.get_presentation_currency_list()
 		},
 		{
+			"fieldname":"cost_center",
+			"label": __("Cost Center"),
+			"fieldtype": "MultiSelectList",
+			"hidden":1,
+			get_data: function(txt) {
+				return frappe.db.get_link_options('Cost Center', txt);
+			}
+		},
+		{
+			"fieldname":"project",
+			"label": __("Project"),
+			"fieldtype": "MultiSelectList",
+			"hidden":1,
+			get_data: function(txt) {
+				return frappe.db.get_link_options('Project', txt);
+			}
+		},
+		{
 			"fieldname": "show_opening_entries",
 			"label": __("Show Opening Entries"),
-			"fieldtype": "Check",
 			"hidden":1,
+			"fieldtype": "Check"
 		},
 		{
 			"fieldname": "include_default_book_entries",
 			"label": __("Include Default Book Entries"),
 			"fieldtype": "Check",
-			"hidden":1
+			"hidden":1,
+			"default": 1
 		}
 	],
 	onload: function(report) {
@@ -246,3 +180,5 @@ frappe.query_reports["MT General Ledger"] = {
 		});
 	}	
 }
+// erpnext.utils.add_dimensions('General Ledger', 15)
+

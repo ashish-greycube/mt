@@ -416,5 +416,7 @@ def get_columns(filters):
 
 @frappe.whitelist()
 def get_allowed_account(user):
+	print('-'*100)
 	allowed_accounts = frappe.get_doc('User', user).get('allowed_account_mt')
+	print(allowed_accounts,'allowed_accounts')
 	return allowed_accounts
